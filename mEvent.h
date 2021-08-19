@@ -1,83 +1,54 @@
-#include <vector>
-#include <functional>
 #include <map>
+#include <functional>
+#include <string>
 using std::function;
 using std::make_pair;
 using std::map;
-using std::vector;
 using std::multimap;
-/*
-    *todo
-    *尝试是否可以做成异步
-    *加上时钟
-    *出现的问题：不同类调用同一个类的函数会emit不一样的signal
-*/
-template <typename ... Args>
-class MEvent
+using std::string;
+
+template <typename... Args>
+class MEvent final
 {
 private:
-    multimap<int, int> signalFunToSlotFun;
-    vector<function<void(Args...)> *> pointerToFuns;
-    // 查找元素的位置，返回-1代表未找到
-    int findPos(function<void(Args...)> *signalFun)
-    {
-        int signalPos = 0;
-        for(auto iter : pointerToFuns)
-        {
-            if(iter==signalFun)
-            {
-                break;
-            }
-            signalPos++;
-        }
-        if(signalPos>=pointerToFuns.size())
-        {
-            return -1;
-        }
-        return signalPos;
-    }
+    map<string, function<void(Args...)> *> slots;
+    multimap<string, string> signalToSlot;
 public:
-    MEvent()
+    void regSlot(const string &slotName, function<void(Args...)> *slot)
     {
+        // 如果槽名称重复，抛出异常
+        auto iter = slots.find(slotName);
+        if (iter != slots.end())
+        {
+            string errorContent = "slot name repeat,name: " + slotName;
+            std::runtime_error runErr(errorContent);
+            throw runErr;
+        }
+        slots.insert(make_pair(slotName, slot));
     }
-    void addEvent(function<void(Args...)> *signalFun, function<void(Args...)> *slotFun)
+    void connect(const string &signalName, const string &slotName)
     {
-        // 查找信号函数的位置。如果不存在将该信号函数加入数组中。
-        int pos = findPos(signalFun);
-        std::cout<<"pos : "<<pos<<"\n";
-        int signalFunPos=0;
-        if(pos == -1)
+        // 如果该连接存在，抛出异常
+        auto iter = signalToSlot.find(signalName);
+        if (iter != signalToSlot.end() && iter->second == slotName)
         {
-            pointerToFuns.push_back(signalFun);
-            signalFunPos = pointerToFuns.size() - 1;
+            string errorContent = "connect repeat,signal name: " + signalName + ", slot name : " + slotName;
+            std::runtime_error runErr(errorContent);
+            throw runErr;
         }
-        else
-        {
-            signalFunPos = pos;
-        }
-        pointerToFuns.push_back(slotFun);
-        int slotFunPos = pointerToFuns.size() - 1;
-        // 添加信号和槽的映射关系
-        signalFunToSlotFun.insert(make_pair(signalFunPos,slotFunPos));
+        signalToSlot.insert(make_pair(signalName, slotName));
     }
-    void emitSignal(function<void(Args...)> *signalFun,Args... args)
+    void emit(const string &signalName, Args... args)
     {
-        //查找信号的位置，如果未找到，则抛出异常
-        int signalPos = findPos(signalFun);
-        if(signalPos == -1)
+        // 找出所有与该信号连接的槽，调用他们
+        for (auto iter : signalToSlot)
         {
-            throw "signal not found!";
-        }
-        // 根据映射关系调用槽函数
-        for(auto iter = signalFunToSlotFun.begin();iter!=signalFunToSlotFun.end();iter++)
-        {
-            if(iter->first==signalPos)
+            if (iter.first == signalName)
             {
-                (*pointerToFuns[iter->second])(args...);
+                (*slots[iter.second])(args...);
             }
         }
     }
-
 };
 
 namespace mEvent
@@ -86,14 +57,20 @@ namespace mEvent
     MEvent<Args...> mEvent;
 
     template<typename... Args>
-    void connect(function<void(Args...)> *signalFun,function<void(Args...)> *slotFun)
+    void regSlot(const string &slotName, function<void(Args...)> *slot)
     {
-        mEvent<Args...>.addEvent(signalFun,slotFun);
+        mEvent<Args...>.regSlot(slotName,slot);
     }
 
     template<typename... Args>
-    void emitSignal(function<void(Args...)> *signalFun,Args... args)
+    void connect(const string &signalName, const string &slotName)
     {
-        mEvent<Args...>.emitSignal(signalFun,args...);
+        mEvent<Args...>.connect(signalName,slotName);
     }
-};
+
+    template<typename... Args>
+    void emit(const string &signalName, Args... args)
+    {
+        mEvent<Args...>.emit(signalName,args...);
+    }
+}
