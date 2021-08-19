@@ -8,9 +8,8 @@ void test()
     function<void(int)> slotFun = [](int a){
         std::cout<<a<<"\n";
     };
-    mEvent::regSlot<int>("secondSlot",&slotFun);
-    mEvent::connect<int>("secondSignal","secondSlot");
-    mEvent::emit<int>("secondSignal",1);
+    mEvent::connect("secondSignal","secondSlot",&slotFun);
+    mEvent::emit("secondSignal",1);
 }
 
 
@@ -20,9 +19,8 @@ int main(int argc, char *argv[])
     function<void(int)> slotFun = [](int a){
         std::cout<<a<<"\n";
     };
-    mEvent::regSlot<int>("firstSlot",&slotFun);
-    mEvent::connect<int>("firstSignal","firstSlot");
-    mEvent::emit<int>("firstSignal",1);
+    mEvent::connect("firstSignal","firstSlot",&slotFun);
+    mEvent::emit("firstSignal",1);
     th1.join();
     return 0;
 }
