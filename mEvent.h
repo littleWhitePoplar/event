@@ -57,14 +57,9 @@ namespace mEvent
     MEvent<Args...> mEvent;
 
     template<typename... Args>
-    void regSlot(const string &slotName, function<void(Args...)> *slot)
+    void connect(const string &signalName, const string &slotName,function<void(Args...)> *slot)
     {
         mEvent<Args...>.regSlot(slotName,slot);
-    }
-
-    template<typename... Args>
-    void connect(const string &signalName, const string &slotName)
-    {
         mEvent<Args...>.connect(signalName,slotName);
     }
 
