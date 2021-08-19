@@ -1,52 +1,28 @@
-#include <iostream>
-#include "mEvent.h"
+#include<iostream>
+#include<thread>
+#include"mEvent.h"
+using std::thread;
 
-using std::cout;
-
-class Button
+void test()
 {
-public:
-    void onclick(int value){};
-};
+    function<void(int)> slotFun = [](int a){
+        std::cout<<a<<"\n";
+    };
+    mEvent::regSlot<int>("secondSlot",&slotFun);
+    mEvent::connect<int>("secondSignal","secondSlot");
+    mEvent::emit<int>("secondSignal",1);
+}
 
-class Print
-{
-private:
-//    Button button;
-public:
-    Print()
-    {
-//        function<void(int)> signalFun = std::bind(&Button::onclick, button, std::placeholders::_1);
-    }
-    void print(int value)
-    {
-        cout << value << "\n";
-    }
-};
 
 int main(int argc, char *argv[])
 {
-    Print print;
-    Button button;
-    function<void(int)> signalFun = std::bind(&Button::onclick, button, std::placeholders::_1);
-    function<void(int)> slotFun = std::bind(&Print::print, print, std::placeholders::_1);
-    function<void(int)> slotFun3 = std::bind(&Print::print, print, std::placeholders::_1);
-    cout<<signalFun.target<void(int)>()<<"\n";
-    cout<<slotFun.target<void(int)>()<<"\n";
-    cout<<slotFun3.target<void(int)>()<<"\n";
-    if(*slotFun.target<void(int)>()==*slotFun3.target<void(int)>())
-    {
-        cout << "is\n";
-    }
-    else
-    {
-        cout << "not\n";
-    }
-    function<void(int)> slotFun2 = [](int a){
-        cout << a << "\n";
+    thread th1(test);
+    function<void(int)> slotFun = [](int a){
+        std::cout<<a<<"\n";
     };
-    mEvent::connect(&signalFun,&slotFun);
-    mEvent::connect(&signalFun,&slotFun2);
-    mEvent::emitSignal(&signalFun,123);
+    mEvent::regSlot<int>("firstSlot",&slotFun);
+    mEvent::connect<int>("firstSignal","firstSlot");
+    mEvent::emit<int>("firstSignal",1);
+    th1.join();
     return 0;
 }
